@@ -1,0 +1,1 @@
+"""FastAPI backend for Northwind Support Co-pilot."""
