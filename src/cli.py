@@ -2,7 +2,7 @@
 CLI interface using typer.
 """
 
-import typer
+import typer 
 import json
 from pathlib import Path
 from typing import Optional
