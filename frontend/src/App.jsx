@@ -102,7 +102,7 @@ function App() {
     <div className="app-container">
       <div className="main-content">
         <div className="header">
-          <h1>🎯 Northwind Support Co-pilot</h1>
+          <h1>🎯 Northwind Support</h1>
           {/* <div className="status">
             <span className={`status-dot ${statusOk ? (statusMode === 'manual' ? 'manual' : 'ok') : 'error'}`}></span>
             <span>{statusOk ? (statusMode === 'manual' ? 'Manual Mode (no API key)' : 'Connected') : 'Offline'}</span>
