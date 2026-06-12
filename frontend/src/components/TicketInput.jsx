@@ -31,7 +31,7 @@ function TicketInput({ onSend, testTickets, disabled }) {
         <option value="">📝 Or pick a test ticket...</option>
         {testTickets.map(ticket => (
           <option key={ticket.id} value={ticket.id}>
-            #{ticket.id} - {ticket.raw_ticket.substring(0, 50)}...
+            {ticket.id} - {ticket.raw_ticket.substring(0, 50)}...
           </option>
         ))}
       </select>

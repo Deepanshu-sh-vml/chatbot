@@ -38,7 +38,11 @@ def load_test_tickets() -> List[Dict[str, Any]]:
     if not test_file.exists():
         raise FileNotFoundError(f"Test set file not found: {test_file}")
     with open(test_file, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+        # Handle nested structure: {"tickets": [...]}
+        if isinstance(data, dict) and "tickets" in data:
+            return data["tickets"]
+        return data
 
 
 @router.get("/health", response_model=HealthResponse)

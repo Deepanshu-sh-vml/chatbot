@@ -103,10 +103,10 @@ function App() {
       <div className="main-content">
         <div className="header">
           <h1>🎯 Northwind Support Co-pilot</h1>
-          <div className="status">
+          {/* <div className="status">
             <span className={`status-dot ${statusOk ? (statusMode === 'manual' ? 'manual' : 'ok') : 'error'}`}></span>
             <span>{statusOk ? (statusMode === 'manual' ? 'Manual Mode (no API key)' : 'Connected') : 'Offline'}</span>
-          </div>
+          </div> */}
         </div>
 
         {error && <div className="error-box">{error}</div>}
