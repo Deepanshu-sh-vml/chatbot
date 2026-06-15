@@ -31,3 +31,13 @@ outputs/*.json
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Node / Vite
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# Secrets
+.env
+frontend/.env
