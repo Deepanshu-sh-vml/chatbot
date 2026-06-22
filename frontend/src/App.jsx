@@ -1,144 +1,91 @@
-import { useEffect, useState, useRef } from 'react'
-import ChatWindow from './components/ChatWindow'
-import TicketInput from './components/TicketInput'
-import StageInspector from './components/StageInspector'
-import PolicyPanel from './components/PolicyPanel'
-import * as api from './api'
+import { useState, useEffect } from "react";
+import ChatButton from "./components/ChatButton";
+import ChatWidget from "./components/ChatWidget";
+import * as api from "./api";
+import "./styles.css";
 
 function App() {
-  const [health, setHealth] = useState(null)
-  const [tickets, setTickets] = useState([])
-  const [policy, setPolicy] = useState(null)
-  const [messages, setMessages] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [showInspector, setShowInspector] = useState(false)
-  const [lastResult, setLastResult] = useState(null)
-  const [error, setError] = useState(null)
-  const chatEndRef = useRef(null)
+  // ---- STATE (the app's memory) ----
+  const [isOpen, setIsOpen] = useState(false);    // chat open/closed
+  const [online, setOnline] = useState(false);    // backend reachable?
+  const [messages, setMessages] = useState([]);   // chat history
+  const [loading, setLoading] = useState(false);  // waiting for reply?
 
-  // Fetch initial data
+  // ---- On mount: check if backend is alive ----
   useEffect(() => {
-    const init = async () => {
-      try {
-        const h = await api.getHealth()
-        setHealth(h)
-        
-        const t = await api.getTickets()
-        setTickets(t)
-        
-        const p = await api.getPolicy()
-        setPolicy(p)
-      } catch (err) {
-        setError('Failed to connect to backend. Make sure it\'s running on http://localhost:8000')
-      }
-    }
-    init()
-  }, [])
+    api.getHealth()
+      .then((h) => setOnline(h.status === "ok"))
+      .catch(() => setOnline(false));
+  }, []);
 
-  // Auto-scroll chat
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  const handleSendTicket = async (ticketText, ticketId = null) => {
-    if (!ticketText.trim()) return
-
-    setError(null)
-    setLoading(true)
-    setShowInspector(false)
+  // ---- LOGIC: send a ticket to the backend ----
+  async function handleSend(ticketText) {
+    // 1. Add the user's message immediately
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), role: "user", text: ticketText },
+    ]);
+    setLoading(true);
 
     try {
-      // Add user message
-      setMessages(prev => [...prev, { 
-        role: 'user', 
-        text: ticketText,
-        id: Date.now()
-      }])
+      // 2. Call the backend (api.js does the HTTP work)
+      const result = await api.sendTicket(ticketText);
 
-      let result
-      if (ticketId) {
-        result = await api.runTicketById(ticketId)
+      // 3. Handle manual mode (no API key) gracefully
+      if (result.mode === "manual") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: "bot",
+            text: "⚙️ The assistant isn't connected to an LLM yet (manual mode). Please add an API key to enable automatic replies.",
+            behavior: "escalate",
+          },
+        ]);
       } else {
-        result = await api.sendTicket(ticketText)
-      }
-
-      setLastResult(result)
-
-      // Check for manual mode
-      if (result.mode === 'manual') {
-        setMessages(prev => [...prev, {
-          role: 'bot',
-          text: result.message,
-          assembled_prompt: result.assembled_prompt,
-          isManual: true,
-          id: Date.now()
-        }])
-      } else {
-        // Add bot response
-        setMessages(prev => [...prev, {
-          role: 'bot',
-          text: result.final_reply,
-          stage3: result.stage3_grounded,
-          id: Date.now()
-        }])
+        // 4. Add the bot's final reply (NESTED in stage4!)
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: "bot",
+            text: result.stage4?.final_reply || "No reply returned.",
+            behavior: result.stage3?.behavior,
+          },
+        ]);
       }
     } catch (err) {
-      setError(err.message)
-      setMessages(prev => [...prev, {
-        role: 'bot',
-        text: `Error: ${err.message}`,
-        isError: true,
-        id: Date.now()
-      }])
+      // 5. Show errors as a bot message instead of crashing
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "bot",
+          text: "⚠️ " + err.message,
+          isError: true,
+        },
+      ]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  const statusMode = health?.mode || 'unknown'
-  const statusOk = health?.status === 'ok'
-
+  // ---- RENDER: button when closed, widget when open ----
   return (
-    <div className="app-container">
-      <div className="main-content">
-        <div className="header">
-          <h1>🎯 Northwind Support</h1>
-          {/* <div className="status">
-            <span className={`status-dot ${statusOk ? (statusMode === 'manual' ? 'manual' : 'ok') : 'error'}`}></span>
-            <span>{statusOk ? (statusMode === 'manual' ? 'Manual Mode (no API key)' : 'Connected') : 'Offline'}</span>
-          </div> */}
-        </div>
-
-        {error && <div className="error-box">{error}</div>}
-
-        <ChatWindow 
-          messages={messages} 
+    <div className="page">
+      {isOpen ? (
+        <ChatWidget
+          online={online}
+          messages={messages}
           loading={loading}
-          ref={chatEndRef}
+          onClose={() => setIsOpen(false)}
+          onSend={handleSend}
         />
-
-        <div className="input-area">
-          <TicketInput 
-            onSend={handleSendTicket}
-            testTickets={tickets}
-            disabled={loading || !statusOk}
-          />
-
-          {lastResult && !error && (
-            <>
-              <div className="inspector-toggle" onClick={() => setShowInspector(!showInspector)}>
-                <span>{showInspector ? '▼' : '▶'}</span>
-                <span>Show Pipeline Details</span>
-              </div>
-              {showInspector && <StageInspector result={lastResult} />}
-            </>
-          )}
-        </div>
-      </div>
-
-      {policy && <PolicyPanel policy={policy.passages} />}
+      ) : (
+        <ChatButton onOpen={() => setIsOpen(true)} />
+      )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

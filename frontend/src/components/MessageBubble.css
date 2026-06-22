@@ -1,0 +1,36 @@
+.bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+.bubble-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, hsl(239, 69%, 76%), #4f46e5);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.bubble-bot {
+  align-self: flex-start;
+  background: #fff;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-bottom-left-radius: 4px;
+}
+
+/* Behavior badges */
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+.badge-green  { background: #dcfce7; color: #166534; }
+.badge-amber  { background: #fef9c3; color: #854d0e; }
+.badge-orange { background: #ffedd5; color: #9a3412; }
+

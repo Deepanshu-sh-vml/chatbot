@@ -67,45 +67,58 @@ class ManualClient(LLMClient):
 
 
 class OpenAIClient(LLMClient):
-    """Tier 1: OpenAI API client."""
+    """Tier 1: OpenAI API client (works with OpenAI, Gemini, or Ollama)."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
         """
-        Initialize OpenAI client.
-        
+        Initialize an OpenAI-compatible client (works with OpenAI, Gemini, or Ollama).
+
         Args:
-            api_key: OpenAI API key (reads from OPENAI_API_KEY env if None)
-            model: Model name (default: gpt-4)
+            api_key:  API key (reads from OPENAI_API_KEY env if None)
+            model:    Model name (reads from OPENAI_MODEL env if None)
+            base_url: API endpoint (reads from OPENAI_BASE_URL env if None)
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.model = model
+        self.model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.base_url = base_url or os.getenv(
+            "OPENAI_BASE_URL", "https://api.openai.com/v1"
+        )
 
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY not found in environment or arguments")
 
     def call(self, prompt: str, input_text: str) -> str:
         """
-        Call OpenAI API.
+        Call an OpenAI-compatible Chat Completions API (works with OpenAI, Gemini, or Ollama).
         """
         try:
-            import openai
+            from openai import OpenAI
         except ImportError:
             raise ImportError("openai package not installed. Install via: pip install openai")
 
-        openai.api_key = self.api_key
+        # Build a client that can point to OpenAI OR Gemini OR Ollama via base_url
+        client = OpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+        )
 
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": input_text},
                 ],
-                temperature=0.3,  # Low temperature for consistency
+                temperature=0.3,
             )
-            return response["choices"][0]["message"]["content"]
+            return response.choices[0].message.content
         except Exception as e:
-            raise RuntimeError(f"OpenAI API call failed: {e}")
+            raise RuntimeError(f"API call failed: {e}")
 
     def health_check(self) -> bool:
         """Check if API key is valid."""
