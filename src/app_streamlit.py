@@ -37,7 +37,7 @@ def main():
 
     with col2:
         st.subheader("⚙️ Settings")
-        use_api = st.checkbox("Use OpenAI API", value=False)
+        use_api = st.checkbox("Use GEMINI API", value=False)
         run_button = st.button("🚀 Process Ticket", key="run_btn")
 
     if run_button and raw_ticket:
@@ -46,8 +46,8 @@ def main():
         try:
             # Get LLM client
             if use_api:
-                from src.llm_client import OpenAIClient
-                llm_client = OpenAIClient()
+                from src.llm_client import GEMINIClient
+                llm_client = GEMINIClient()
             else:
                 from src.llm_client import ManualClient
                 llm_client = ManualClient()

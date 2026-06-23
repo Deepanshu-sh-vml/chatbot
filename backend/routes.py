@@ -89,7 +89,7 @@ async def run_on_custom_ticket(request: TicketRequest) -> PipelineResponse:
         if isinstance(llm_client, ManualClient):
             raise HTTPException(
                 status_code=400,
-                detail="ManualClient mode active. Set OPENAI_API_KEY to use automatic mode.",
+                detail="ManualClient mode active. Set GEMINI_API_KEY to use automatic mode.",
             )
         
         # Generate a ticket ID based on timestamp
@@ -141,7 +141,7 @@ async def run_on_test_ticket(ticket_id: int) -> PipelineResponse:
         if isinstance(llm_client, ManualClient):
             raise HTTPException(
                 status_code=400,
-                detail="ManualClient mode active. Set OPENAI_API_KEY to use automatic mode.",
+                detail="ManualClient mode active. Set GEMINI_API_KEY to use automatic mode.",
             )
         
         result = run_pipeline(

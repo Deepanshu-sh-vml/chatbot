@@ -49,7 +49,7 @@ function App() {
           {
             id: Date.now() + 1,
             role: "bot",
-            text: result.stage4?.final_reply || "No reply returned.",
+            text: result.final_reply || "No reply returned.",
             behavior: result.stage3?.behavior,
           },
         ]);

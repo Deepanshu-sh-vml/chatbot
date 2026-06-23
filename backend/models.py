@@ -54,7 +54,7 @@ class ManualModeResponse(BaseModel):
     """Response when running in ManualClient mode (no API key)."""
     mode: str = "manual"
     assembled_prompt: str
-    message: str = "No LLM key set. Run this prompt manually and resubmit, or set OPENAI_API_KEY."
+    message: str = "No LLM key set. Run this prompt manually and resubmit, or set GEMINI_API_KEY."
     stage: int
 
 

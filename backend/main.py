@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from backend.routes import router
 
+load_dotenv()
+
 app = FastAPI(
     title="Northwind Support Co-pilot Backend",
     description="4-stage LLM pipeline for support ticket triage",

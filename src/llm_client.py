@@ -66,8 +66,8 @@ class ManualClient(LLMClient):
         return True
 
 
-class OpenAIClient(LLMClient):
-    """Tier 1: OpenAI API client (works with OpenAI, Gemini, or Ollama)."""
+class GEMINIClient(LLMClient):
+    """Tier 1: GEMINI API client (works with OpenAI, Gemini, or Ollama)."""
 
     def __init__(
         self,
@@ -76,25 +76,25 @@ class OpenAIClient(LLMClient):
         base_url: Optional[str] = None,
     ):
         """
-        Initialize an OpenAI-compatible client (works with OpenAI, Gemini, or Ollama).
+        Initialize a GEMINI-compatible client (works with OpenAI, Gemini, or Ollama).
 
         Args:
-            api_key:  API key (reads from OPENAI_API_KEY env if None)
-            model:    Model name (reads from OPENAI_MODEL env if None)
-            base_url: API endpoint (reads from OPENAI_BASE_URL env if None)
+            api_key:  API key (reads from GEMINI_API_KEY env if None)
+            model:    Model name (reads from GEMINI_MODEL env if None)
+            base_url: API endpoint (reads from GEMINI_BASE_URL env if None)
         """
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.model = model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.base_url = base_url or os.getenv(
-            "OPENAI_BASE_URL", "https://api.openai.com/v1"
+            "GEMINI_BASE_URL", "https://api.gemini.com/v1"
         )
 
         if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment or arguments")
+            raise ValueError("GEMINI_API_KEY not found in environment or arguments")
 
     def call(self, prompt: str, input_text: str) -> str:
         """
-        Call an OpenAI-compatible Chat Completions API (works with OpenAI, Gemini, or Ollama).
+        Call an GEMINI-compatible Chat Completions API (works with OpenAI, Gemini, or Ollama).
         """
         try:
             from openai import OpenAI
@@ -127,15 +127,15 @@ class OpenAIClient(LLMClient):
 
 def get_llm_client() -> LLMClient:
     """
-    Auto-select LLM client: OpenAI if key present, else Manual.
+    Auto-select LLM client: GEMINI if key present, else Manual.
     """
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
     if api_key:
         try:
-            return OpenAIClient(api_key=api_key)
+            return GEMINIClient(api_key=api_key)
         except Exception as e:
-            print(f"Warning: Failed to initialize OpenAI client ({e}), falling back to ManualClient")
+            print(f"Warning: Failed to initialize GEMINI client ({e}), falling back to ManualClient")
             return ManualClient()
     else:
-        print("No OPENAI_API_KEY found. Using ManualClient.")
+        print("No GEMINI_API_KEY found. Using ManualClient.")
         return ManualClient()

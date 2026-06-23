@@ -88,15 +88,15 @@ def run_pipeline(
         )
         result.stage3_output = run_stage(3, stage3_input, Stage3Output, llm_client)
         print(f"  -> Behavior: {result.stage3_output.behavior}")
-        print(f"  -> Reply: {result.stage3_output.reply_text[:80]}...")
-        print(f"  -> Citations: {result.stage3_output.citations}")
+        print(f"  -> Reply: {result.stage3_output.reply_text}...")
+        # print(f"  -> Citations: {result.stage3_output.citations}")
 
         # Stage 4: Critique
         print(f"\n[Stage 4] Critiquing draft...")
         stage4_input = (
             f"Original ticket: {raw_ticket}\n\n"
             f"Draft reply: {result.stage3_output.reply_text}\n\n"
-            f"Citations: {result.stage3_output.citations}"
+            # f"Citations: {result.stage3_output.citations}"
         )
         result.stage4_output = run_stage(4, stage4_input, Stage4Output, llm_client)
         print(f"  -> Issues found: {len(result.stage4_output.issues_found)}")
