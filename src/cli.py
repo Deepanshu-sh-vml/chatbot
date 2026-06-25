@@ -1,15 +1,21 @@
 """
 CLI interface using typer.
 """
-
-import typer 
-import json
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env from project root BEFORE importing anything that reads env vars
+ROOT = Path(__file__).resolve().parents[1]   # src/ -> project root
+load_dotenv(dotenv_path=ROOT / ".env", override=True)
+
+# --- only AFTER load_dotenv, import the rest ---
+import typer
+import json
 from typing import Optional
 
 from src.llm_client import get_llm_client
 from src.pipeline import run_pipeline
-
 
 app = typer.Typer(help="Northwind Support Co-pilot CLI")
 

@@ -161,9 +161,9 @@ def evaluate_stage3(
         "scores_per_test": {},
     }
 
-    # Load policy to validate citations
+    # Load policy to validate citations — capture WITHOUT brackets (e.g. "P1", "P2")
     policy_text = Path("data/policy.md").read_text()
-    valid_citations = re.findall(r"\[P\d+\]", policy_text)
+    valid_citations = set(re.findall(r"\[?(P\d+)\]?", policy_text))
 
     for test_case in test_cases:
         ticket_id = str(test_case.id)
@@ -175,17 +175,32 @@ def evaluate_stage3(
             continue
 
         # Check behavior
-        behavior_correct = stage3.get("behavior") == test_case.expected_behavior
+        expected_behavior = test_case.expected_behavior
+        actual_behavior = stage3.get("behavior")
+        behavior_correct = actual_behavior == expected_behavior
         if behavior_correct:
             results["behavior_correct"] += 1
 
-        # Check citations
-        citations = stage3.get("citations", [])
-        citations_valid = all(c in valid_citations for c in citations)
+        # Normalize citations (strip brackets from output) and compare to valid set
+        raw_citations = stage3.get("citations", [])
+        citations_clean = [c.strip("[]") for c in raw_citations]
+
+        if expected_behavior == "escalate":
+            # Escalations MUST have NO citations
+            citations_valid = (len(citations_clean) == 0)
+        elif expected_behavior in ("grounded_reply", "grounded_denial"):
+            # Grounded behaviors MUST cite at least one VALID passage
+            citations_valid = (
+                len(citations_clean) > 0
+                and all(c in valid_citations for c in citations_clean)
+            )
+        else:
+            citations_valid = all(c in valid_citations for c in citations_clean)
+
         if citations_valid:
             results["citations_valid"] += 1
 
-        # Check length
+        # Check length (note: 120 CHARACTERS — see note below!)
         reply_text = stage3.get("reply_text", "")
         length_ok = len(reply_text) <= 120
 
@@ -200,8 +215,8 @@ def evaluate_stage3(
 
         results["scores_per_test"][ticket_id] = {
             "score": score,
-            "expected_behavior": test_case.expected_behavior,
-            "actual_behavior": stage3.get("behavior"),
+            "expected_behavior": expected_behavior,
+            "actual_behavior": actual_behavior,
             "behavior_correct": behavior_correct,
             "citations_valid": citations_valid,
             "length_ok": length_ok,

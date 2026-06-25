@@ -41,3 +41,5 @@ frontend/dist/
 # Secrets
 .env
 frontend/.env
+check_behaviors.py
+start.bat
