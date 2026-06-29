@@ -27,16 +27,17 @@ Browser (React chat widget) FastAPI backend 4-stage pipeline localhost:5173 ─�
 ## Frontend (React + Vite)
 A componentized floating chat widget:
 
-| Component | Responsibility |
-|-----------|----------------|
-| `App.jsx` | State manager (open/closed, messages, loading, online status) + send logic |
-| `ChatButton.jsx` | Floating circular launcher button |
-| `ChatWidget.jsx` | Panel container (vertical flexbox: header / messages / input) |
-| `ChatHeader.jsx` | Title, online/offline status dot, close button |
-| `MessageList.jsx` | Scrollable messages, auto-scroll, typing indicator, starter questions |
-| `MessageBubble.jsx` | Single message (user right / bot left) + behavior badge |
-| `ChatInput.jsx` | Textarea + send button (Enter to send) |
-| `api.js` | All backend calls (`getHealth`, `getTickets`, `sendTicket`) |
+|      Component      |                              Responsibility                                |
+|---------------------|----------------------------------------------------------------------------|
+| `App.jsx`           | State manager (open/closed, messages, loading, online status) + send logic |
+| `ChatButton.jsx`    | Floating circular launcher button                                          |
+| `ChatWidget.jsx`    | Panel container (vertical flexbox: header / messages / input)              |
+| `ChatHeader.jsx`    | Title, online/offline status dot, close button                             |
+| `MessageList.jsx`   | Scrollable messages, auto-scroll, typing indicator, starter questions      |
+| `MessageBubble.jsx` | Single message (user right / bot left) + behavior badge                    |
+| `ChatInput.jsx`     | Textarea + send button (Enter to send)                                     |
+| `api.js`            | All backend calls (`getHealth`, `getTickets`, `sendTicket`)                |
+
 
 Each component has its own co-located CSS file for maintainability.
 
@@ -45,13 +46,13 @@ Each component has its own co-located CSS file for maintainability.
 ## Backend (FastAPI)
 Endpoints (prefixed `/api`):
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/health` | GET | Backend + LLM-client status (drives the online dot) |
-| `/api/policy` | GET | Returns policy passages [P1]–[P8] |
-| `/api/tickets` | GET | Returns the 14 test tickets |
-| `/api/ticket` | POST | Runs the full 4-stage pipeline on a custom ticket |
-| `/api/ticket/{id}` | POST | Runs the pipeline on a test-set ticket by ID |
+|    Endpoint        | Method |                    Purpose                          |
+|--------------------|--------|-----------------------------------------------------|
+| `/api/health`      |  GET   | Backend + LLM-client status (drives the online dot) |
+| `/api/policy`      |  GET   | Returns policy passages [P1]–[P8]                   |
+| `/api/tickets`     |  GET   | Returns the 14 test tickets                         |
+| `/api/ticket`      |  POST  | Runs the full 4-stage pipeline on a custom ticket   |
+| `/api/ticket/{id}` |  POST  | Runs the pipeline on a test-set ticket by ID        |
 
 The backend imports and calls `src/pipeline.py` directly — it never duplicates pipeline logic.
 `.env` is loaded at startup so the LLM client (Gemini) is configured before any request.
@@ -62,11 +63,9 @@ The backend imports and calls `src/pipeline.py` directly — it never duplicates
 A single `OpenAIClient` (in `src/llm_client.py`) targets any OpenAI-compatible endpoint via a
 configurable `base_url`:
 
-| Provider | OPENAI_BASE_URL | Notes |
-|----------|-----------------|-------|
-| Gemini (used) | `https://generativelanguage.googleapis.com/v1beta/openai/` | Free tier |
-| OpenAI | `https://api.openai.com/v1` | Default |
-| Ollama (local) | `http://localhost:11434/v1` | Offline option |
+| Provider       |                  OPENAI_BASE_URL                           |  Notes    |
+|----------------|------------------------------------------------------------|-----------|
+| Gemini (used)  | `https://generativelanguage.googleapis.com/v1beta/openai/` | Free tier |
 
 This abstraction means the model can be swapped via `.env` alone — no code changes.
 
