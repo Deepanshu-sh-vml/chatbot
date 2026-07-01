@@ -115,6 +115,7 @@ class GEMINIClient(LLMClient):
                     {"role": "user", "content": input_text},
                 ],
                 temperature=0.3,
+                max_tokens=3000,
             )
             return response.choices[0].message.content
         except Exception as e:

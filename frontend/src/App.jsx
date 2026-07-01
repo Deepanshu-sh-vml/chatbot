@@ -74,13 +74,16 @@ function App() {
   return (
     <div className="page">
       {isOpen ? (
-        <ChatWidget
-          online={online}
-          messages={messages}
-          loading={loading}
-          onClose={() => setIsOpen(false)}
-          onSend={handleSend}
-        />
+        <>
+          <div className="chat-overlay" onClick={() => setIsOpen(false)} />
+          <ChatWidget
+            online={online}
+            messages={messages}
+            loading={loading}
+            onClose={() => setIsOpen(false)}
+            onSend={handleSend}
+          />
+        </>
       ) : (
         <ChatButton onOpen={() => setIsOpen(true)} />
       )}

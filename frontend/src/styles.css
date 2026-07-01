@@ -1,4 +1,4 @@
-{ box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -7,4 +7,17 @@ body {
 .page {
   min-height: 100vh;
   background: #ffffff;
+}
+
+.chat-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }

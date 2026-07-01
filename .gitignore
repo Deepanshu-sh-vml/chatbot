@@ -43,3 +43,6 @@ frontend/dist/
 frontend/.env
 check_behaviors.py
 start.bat
+_timeit_all.py
+_timeit.py
+timing_report.txt
