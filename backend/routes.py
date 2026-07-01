@@ -1,5 +1,6 @@
 """API routes for the Northwind Support Co-pilot."""
 
+import os
 import json
 from pathlib import Path
 from datetime import datetime, timezone
@@ -8,6 +9,15 @@ from typing import List, Any, Dict
 from fastapi import APIRouter, HTTPException
 from src.pipeline import run_pipeline
 from src.llm_client import get_llm_client, ManualClient
+
+# ADK Pipeline imports (only imported if ADK is enabled)
+try:
+    from src.agents.workflow import run_adk_pipeline, get_workflow
+    ADK_AVAILABLE = True
+except ImportError:
+    ADK_AVAILABLE = False
+    print("Warning: ADK not available. Install google-adk to enable ADK pipeline mode.")
+
 from backend.models import (
     TicketRequest,
     PipelineResponse,
@@ -45,11 +55,110 @@ def load_test_tickets() -> List[Dict[str, Any]]:
         return data
 
 
+def use_adk_pipeline() -> bool:
+    """Check if ADK pipeline should be used based on environment variable."""
+    return (
+        ADK_AVAILABLE and 
+        os.getenv("USE_ADK_PIPELINE", "false").lower() in ("true", "1", "yes")
+    )
+
+
+def is_simple_greeting(text: str) -> bool:
+    """Check if the message is a simple greeting that doesn't need full pipeline."""
+    text_lower = text.lower().strip()
+    
+    # Simple greetings
+    greetings = [
+        "hi", "hello", "hey", "hii", "hiii", "hello there", "hi there",
+        "good morning", "good afternoon", "good evening", "good day",
+        "greetings", "howdy", "what's up", "sup", "hlo", "hllo"
+    ]
+    
+    # Check if the entire message is just a greeting (with optional punctuation)
+    cleaned_text = text_lower.rstrip('!.?').strip()
+    
+    return cleaned_text in greetings or any(
+        cleaned_text == greeting for greeting in greetings
+    )
+
+
+def create_greeting_response(ticket_id: str, raw_ticket: str) -> PipelineResponse:
+    """Create a greeting response without running the full pipeline."""
+    greeting_reply = "Hello! Welcome to Northwind Support. How can I assist you today? Feel free to describe your issue or question."
+    
+    return PipelineResponse(
+        ticket_id=ticket_id,
+        raw_ticket=raw_ticket,
+        stage1_classification={"category": "greeting", "confidence": 1.0, "reason": "Simple greeting detected"},
+        stage2_extraction={"name": None, "order_id": None, "product": None, "issue_summary": "Greeting", "urgency": "low"},
+        stage3_grounded={"behavior": "grounded_reply", "reply_text": greeting_reply, "citations": []},
+        stage4_critique={"issues_found": [], "final_reply": greeting_reply},
+        final_reply=greeting_reply,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+async def run_pipeline_dual_mode(ticket_id: str, raw_ticket: str, save_output: bool = True, output_dir: str = "outputs"):
+    """
+    Run either legacy or ADK pipeline based on configuration.
+    
+    Returns the same PipelineResult format for compatibility.
+    """
+    if use_adk_pipeline():
+        # Use ADK pipeline
+        print(f"[DUAL MODE] Using ADK pipeline for ticket {ticket_id}")
+        return await run_adk_pipeline(
+            ticket_id=ticket_id,
+            raw_ticket=raw_ticket,
+            save_output=save_output,
+            output_dir=output_dir
+        )
+    else:
+        # Use legacy pipeline
+        print(f"[DUAL MODE] Using legacy pipeline for ticket {ticket_id}")
+        llm_client = get_llm_client()
+        
+        # Check if in manual mode
+        if isinstance(llm_client, ManualClient):
+            raise HTTPException(
+                status_code=400,
+                detail="ManualClient mode active. Set GEMINI_API_KEY to use automatic mode.",
+            )
+        
+        return run_pipeline(
+            ticket_id=ticket_id,
+            raw_ticket=raw_ticket,
+            llm_client=llm_client,
+            save_output=save_output,
+            output_dir=output_dir
+        )
+
+
 @router.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
     llm_client = get_llm_client()
-    mode = "manual" if isinstance(llm_client, ManualClient) else "openai"
+    
+    # Determine LLM mode
+    if isinstance(llm_client, ManualClient):
+        llm_mode = "manual"
+    else:
+        llm_mode = "gemini"
+    
+    # Determine pipeline mode
+    if use_adk_pipeline():
+        pipeline_mode = "adk"
+        # Check ADK workflow health if available
+        try:
+            workflow = get_workflow()
+            adk_healthy = workflow.health_check()
+            mode = f"{llm_mode}+{pipeline_mode}" if adk_healthy else f"{llm_mode}+{pipeline_mode}(unhealthy)"
+        except Exception:
+            mode = f"{llm_mode}+{pipeline_mode}(error)"
+    else:
+        pipeline_mode = "legacy"
+        mode = f"{llm_mode}+{pipeline_mode}"
+    
     return HealthResponse(status="ok", mode=mode)
 
 
@@ -83,23 +192,18 @@ async def run_on_custom_ticket(request: TicketRequest) -> PipelineResponse:
     Body: {"ticket_text": "I was charged twice..."}
     """
     try:
-        llm_client = get_llm_client()
-        
-        # Check if in manual mode
-        if isinstance(llm_client, ManualClient):
-            raise HTTPException(
-                status_code=400,
-                detail="ManualClient mode active. Set GEMINI_API_KEY to use automatic mode.",
-            )
-        
         # Generate a ticket ID based on timestamp
         ticket_id = f"custom_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         
-        # Run pipeline
-        result = run_pipeline(
+        # Check for simple greetings first
+        if is_simple_greeting(request.ticket_text):
+            print(f"[GREETING] Detected simple greeting for ticket {ticket_id}")
+            return create_greeting_response(ticket_id, request.ticket_text)
+        
+        # Run pipeline (dual mode: legacy or ADK based on environment)
+        result = await run_pipeline_dual_mode(
             ticket_id=ticket_id,
             raw_ticket=request.ticket_text,
-            llm_client=llm_client,
             save_output=True,
             output_dir=str(get_project_root() / "outputs"),
         )
@@ -136,18 +240,15 @@ async def run_on_test_ticket(ticket_id: int) -> PipelineResponse:
         if not ticket:
             raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
         
-        llm_client = get_llm_client()
+        # Check for simple greetings first
+        if is_simple_greeting(ticket["raw_ticket"]):
+            print(f"[GREETING] Detected simple greeting for test ticket {ticket_id}")
+            return create_greeting_response(str(ticket_id), ticket["raw_ticket"])
         
-        if isinstance(llm_client, ManualClient):
-            raise HTTPException(
-                status_code=400,
-                detail="ManualClient mode active. Set GEMINI_API_KEY to use automatic mode.",
-            )
-        
-        result = run_pipeline(
+        # Run pipeline (dual mode: legacy or ADK based on environment)
+        result = await run_pipeline_dual_mode(
             ticket_id=str(ticket_id),
             raw_ticket=ticket["raw_ticket"],
-            llm_client=llm_client,
             save_output=True,
             output_dir=str(get_project_root() / "outputs"),
         )

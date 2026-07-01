@@ -46,3 +46,5 @@ start.bat
 _timeit_all.py
 _timeit.py
 timing_report.txt
+test_adk.py
+test_greeting.py
