@@ -162,7 +162,21 @@ def evaluate_stage3(
     }
 
     # Load policy to validate citations — capture WITHOUT brackets (e.g. "P1", "P2")
-    policy_text = Path("data/policy.md").read_text()
+    policy_dir = Path("data/policies")
+    
+    if policy_dir.exists():
+        # Load from new categorized structure
+        policy_files = ["billing.md", "account.md", "technical.md", "shipping.md", "uncovered.md"]
+        combined_policy = []
+        for file_name in policy_files:
+            policy_file = policy_dir / file_name
+            if policy_file.exists():
+                content = policy_file.read_text(encoding="utf-8")
+                combined_policy.append(content)
+        policy_text = "\n\n---\n\n".join(combined_policy)
+    else:
+        # Fallback to old policy.md
+        policy_text = Path("data/policy.md").read_text()
     valid_citations = set(re.findall(r"\[?(P\d+)\]?", policy_text))
 
     for test_case in test_cases:

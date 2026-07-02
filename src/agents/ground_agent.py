@@ -9,9 +9,27 @@ from .base import build_agent, load_prompt_content, run_agent
 
 
 def load_policy_content() -> str:
-    """Load policy content from data/policy.md"""
+    """Load policy content from multiple categorized policy files"""
     root = Path(__file__).resolve().parent.parent.parent
-    return (root / "data" / "policy.md").read_text(encoding="utf-8")
+    policy_dir = root / "data" / "policies"
+    
+    # Policy files in order
+    policy_files = [
+        "billing.md",
+        "account.md", 
+        "technical.md",
+        "shipping.md",
+        "uncovered.md"
+    ]
+    
+    combined_policy = []
+    for file_name in policy_files:
+        policy_file = policy_dir / file_name
+        if policy_file.exists():
+            content = policy_file.read_text(encoding="utf-8")
+            combined_policy.append(content)
+    
+    return "\n\n---\n\n".join(combined_policy)
 
 
 class GroundAgent:

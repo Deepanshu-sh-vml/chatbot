@@ -35,11 +35,36 @@ def get_project_root() -> Path:
 
 
 def load_policy() -> str:
-    """Load policy.md from data/."""
-    policy_file = get_project_root() / "data" / "policy.md"
-    if not policy_file.exists():
-        raise FileNotFoundError(f"Policy file not found: {policy_file}")
-    return policy_file.read_text(encoding="utf-8")
+    """Load policy content from categorized policy files."""
+    policy_dir = get_project_root() / "data" / "policies"
+    
+    # Policy files in order
+    policy_files = [
+        "billing.md",
+        "account.md", 
+        "technical.md",
+        "shipping.md",
+        "uncovered.md"
+    ]
+    
+    if not policy_dir.exists():
+        # Fallback to old policy.md if new structure doesn't exist
+        old_policy = get_project_root() / "data" / "policy.md"
+        if old_policy.exists():
+            return old_policy.read_text(encoding="utf-8")
+        raise FileNotFoundError(f"Policy directory not found: {policy_dir}")
+    
+    combined_policy = []
+    for file_name in policy_files:
+        policy_file = policy_dir / file_name
+        if policy_file.exists():
+            content = policy_file.read_text(encoding="utf-8")
+            combined_policy.append(content)
+    
+    if not combined_policy:
+        raise FileNotFoundError("No policy files found in policies directory")
+    
+    return "\n\n---\n\n".join(combined_policy)
 
 
 def load_test_tickets() -> List[Dict[str, Any]]:
@@ -104,15 +129,23 @@ async def run_pipeline_dual_mode(ticket_id: str, raw_ticket: str, save_output: b
     
     Returns the same PipelineResult format for compatibility.
     """
+    import time
+    
     if use_adk_pipeline():
         # Use ADK pipeline
         print(f"[DUAL MODE] Using ADK pipeline for ticket {ticket_id}")
-        return await run_adk_pipeline(
+        start_time = time.time()
+        
+        result = await run_adk_pipeline(
             ticket_id=ticket_id,
             raw_ticket=raw_ticket,
             save_output=save_output,
             output_dir=output_dir
         )
+        
+        total_time = time.time() - start_time
+        print(f"[TIMING SUMMARY] Ticket {ticket_id} completed in {total_time:.2f}s")
+        return result
     else:
         # Use legacy pipeline
         print(f"[DUAL MODE] Using legacy pipeline for ticket {ticket_id}")

@@ -49,41 +49,47 @@ class NorthwindSupportWorkflow:
             PipelineResult: Same format as legacy pipeline for compatibility
         """
         result = PipelineResult(ticket_id, raw_ticket)
+        stage_timings = {}
         
         try:
             # Stage 1: Classify
             print(f"\n[ADK Stage 1] Classifying ticket {ticket_id}...")
             start_time = time.time()
             result.stage1_output = await self.classify_agent.classify(raw_ticket)
-            stage1_time = time.time() - start_time
+            stage_timings['stage1'] = time.time() - start_time
             print(f"  -> Category: {result.stage1_output.category} "
-                  f"(confidence: {result.stage1_output.confidence}) [{stage1_time:.2f}s]")
+                  f"(confidence: {result.stage1_output.confidence}) [{stage_timings['stage1']:.2f}s]")
 
             # Stage 2: Extract
             print(f"\n[ADK Stage 2] Extracting information...")
             start_time = time.time()
             result.stage2_output = await self.extract_agent.extract(raw_ticket, result.stage1_output)
-            stage2_time = time.time() - start_time
+            stage_timings['stage2'] = time.time() - start_time
             print(f"  -> Order ID: {result.stage2_output.order_id}, "
-                  f"Name: {result.stage2_output.name} [{stage2_time:.2f}s]")
+                  f"Name: {result.stage2_output.name} [{stage_timings['stage2']:.2f}s]")
 
             # Stage 3: Ground in policy
             print(f"\n[ADK Stage 3] Grounding in policy...")
             start_time = time.time()
             result.stage3_output = await self.ground_agent.ground(raw_ticket, result.stage1_output, result.stage2_output)
-            stage3_time = time.time() - start_time
-            print(f"  -> Behavior: {result.stage3_output.behavior} [{stage3_time:.2f}s]")
+            stage_timings['stage3'] = time.time() - start_time
+            print(f"  -> Behavior: {result.stage3_output.behavior} [{stage_timings['stage3']:.2f}s]")
             print(f"  -> Reply: {result.stage3_output.reply_text[:50]}...")
 
             # Stage 4: Critique
             print(f"\n[ADK Stage 4] Critiquing draft...")
             start_time = time.time()
             result.stage4_output = await self.critique_agent.critique(raw_ticket, result.stage3_output)
-            stage4_time = time.time() - start_time
-            print(f"  -> Issues found: {len(result.stage4_output.issues_found)} [{stage4_time:.2f}s]")
+            stage_timings['stage4'] = time.time() - start_time
+            print(f"  -> Issues found: {len(result.stage4_output.issues_found)} [{stage_timings['stage4']:.2f}s]")
             if result.stage4_output.issues_found:
                 for issue in result.stage4_output.issues_found:
                     print(f"    - {issue}")
+
+            # Display timing breakdown
+            total_time = sum(stage_timings.values())
+            print(f"\n[STAGE TIMINGS] S1: {stage_timings['stage1']:.2f}s | S2: {stage_timings['stage2']:.2f}s | "
+                  f"S3: {stage_timings['stage3']:.2f}s | S4: {stage_timings['stage4']:.2f}s | Total: {total_time:.2f}s")
 
             # Save output (same as legacy pipeline)
             if save_output:

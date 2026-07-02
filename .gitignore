@@ -42,9 +42,10 @@ frontend/dist/
 .env
 frontend/.env
 check_behaviors.py
-start.bat
+
 _timeit_all.py
 _timeit.py
 timing_report.txt
 test_adk.py
 test_greeting.py
+redteam_stage4.py

@@ -13,7 +13,22 @@ flawed_draft = {
 }
 
 stage4_prompt = Path("prompts/stage4_critique.v2.md").read_text()  # adjust filename
-policy = Path("data/policy.md").read_text()
+# Load policy from new categorized structure
+policy_dir = Path("data/policies")
+
+if policy_dir.exists():
+    # Load from new categorized structure
+    policy_files = ["billing.md", "account.md", "technical.md", "shipping.md", "uncovered.md"]
+    combined_policy = []
+    for file_name in policy_files:
+        policy_file = policy_dir / file_name
+        if policy_file.exists():
+            content = policy_file.read_text(encoding="utf-8")
+            combined_policy.append(content)
+    policy = "\n\n---\n\n".join(combined_policy)
+else:
+    # Fallback to old policy.md
+    policy = Path("data/policy.md").read_text()
 
 client = get_llm_client()
 input_text = f"POLICY:\n{policy}\n\nDRAFT TO REVIEW:\n{json.dumps(flawed_draft)}"
