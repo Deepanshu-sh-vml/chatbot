@@ -34,7 +34,14 @@ class CritiqueAgent:
 Draft reply: {stage3_output.reply_text}
 
 Citations: {stage3_output.citations}"""
-            return await run_agent(self.agent, input_data, Stage4Output)
+            result = await run_agent(self.agent, input_data, Stage4Output)
+            
+            # Post-process: Remove policy numbers from final_reply
+            # Pattern: [P1], [P2], [P3], etc.
+            import re
+            result.final_reply = re.sub(r'\[P\d+\]', '', result.final_reply).strip()
+            
+            return result
         except Exception as e:
             raise RuntimeError(f"Stage 4 critique failed: {e}")
 
