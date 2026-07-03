@@ -20,6 +20,8 @@ The Northwind Support Co-pilot is a deterministic system that transforms raw sup
 ## Architecture
 
 ```
+## Legacy pipeline
+
 Raw Support Ticket
         ↓
    [Stage 1: CLASSIFY]
@@ -40,11 +42,32 @@ Raw Support Ticket
    Final Reply (or escalate to human)
 ```
 
+
+```
+Multi-Agent Workflow (current approach)
+
+┌─────────────────────────────────────┐
+│          ADK Workflow               │
+│                                     │
+│  ┌─────────────┐  ┌─────────────┐   │
+│  │ Classify    │→ │ Extract     │   │
+│  │ Agent       │  │ Agent       │   │
+│  └─────────────┘  └─────────────┘   │
+│           │                │        │
+│           ▼                ▼        │
+│  ┌─────────────┐  ┌─────────────┐   │
+│  │ Ground      │→ │ Critique    │   │
+│  │ Agent       │  │ Agent       │   │
+│  └─────────────┘  └─────────────┘   │
+└─────────────────────────────────────┘
+```
 ---
 
 ## Quick Start
 
 ### 1. Setup Environment
+
+Legacy Pipeline
 
 ```bash
 # Clone/navigate to the repo
@@ -70,8 +93,25 @@ python -m src.cli run --ticket-id 1
 # The prompt will print, paste ChatGPT's JSON response back
 # (Works with copy-paste from ChatGPT web interface)
 ```
+ADK Workflow
+```
+#### 1.1 Dependencies
+- ✅ Install ADK: `pip install google-adk`
+- ✅ Update requirements.txt
+- Environment variables for model configuration
 
-### 3. Run with OpenAI API (Tier 1)
+#### 1.2 Environment Configuration
+```
+# .env file additions
+ADK_MODEL=gemini-2.5-flash
+ADK_TEMPERATURE=0.3
+ADK_MAX_TOKENS=3000
+ADK_BASE_URL=https://api.gemini.com/v1
+USE_ADK_PIPELINE=false          # Feature flag for gradual rollout
+```
+```
+
+### 3. Run with GEMINI API (Tier 1)
 
 ```bash
 # Set your API key
@@ -127,7 +167,15 @@ northwind-support-copilot/
 ├── .env.example                   # Environment template
 ├── .gitignore                     # Git ignore patterns
 │
-├── src/                           # Main application
+├── src/  
+|   ├── agents/                    # New ADK agents
+│   |      ├── __init__.py
+│   |      ├── classify_agent.py
+│   |      ├── extract_agent.py
+│   |      ├── ground_agent.py
+│   |      ├── critique_agent.py
+│   |      └── workflow.py         # Main application
+|   |
 │   ├── __init__.py
 │   ├── schemas.py                 # Pydantic models (Stage 1-4 outputs)
 │   ├── llm_client.py              # LLMClient ABC + ManualClient + OpenAIClient
